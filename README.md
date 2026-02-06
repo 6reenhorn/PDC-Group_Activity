@@ -1,3 +1,0 @@
-# PDC-Group Activity 1
-The first group activity for our *CS323 Parallel and Distributed Computing*. It is a simple calculator program which is programmed in a codespace for collaboration.
-
