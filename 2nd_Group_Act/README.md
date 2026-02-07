@@ -1,7 +1,7 @@
-|      Method      | Execution Order | GWA Output | Execution Time |
-|------------------|-----------------|------------|----------------|
-|  Multithreading  |
-|  Multiprocessing |
+|      Method      |     Execution Order    | GWA Output | Execution Time |
+|------------------|------------------------|------------|----------------|
+|  Multithreading  | Concurrent/Interleaved |    86.50   |     2.28s      |
+|  Multiprocessing |        Parallel        |    86.50   |     2.58s      |
 
 #### Discussion
 
