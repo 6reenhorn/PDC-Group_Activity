@@ -10,7 +10,7 @@ lock = threading.Lock()
 
 def compute_gwa(grades, thread_id):
     start_time = time.time()
-    print(f"[{time.strftime('%H:%M:%S')}] Thread {thread_id} START")
+    print(f"[{time.strftime('%H:%M:%S')}] Thread {thread_id} START - Grades: {grades}")
 
     # Simulate workload duration so concurrency can be observed
     # Random delay helps show threads finishing at different times
