@@ -1,81 +1,68 @@
-from multiprocessing import Process, Queue, current_process
+from multiprocessing import Process, Queue
 import time
 import random
 
-def compute_gwa_mp(student_id, grades, result_queue):
-    """Calculate GWA and store result in queue"""
-    time.sleep(random.uniform(0.5, 2.0)) 
+def compute_gwa_mp(grades, process_id, result_queue):
+    start_time = time.time()
+    
+    print(f"[{time.strftime('%H:%M:%S')}] Process-{process_id} START - Grades: {grades}")
+    
+    time.sleep(random.uniform(1, 3))
     
     gwa = sum(grades) / len(grades)
-    process_name = current_process().name
+    duration = time.time() - start_time
     
-    result_queue.put({
-        'student_id': student_id,
-        'gwa': gwa,
-        'process_name': process_name,
-        'num_subjects': len(grades)
-    })
+    print(f"[{time.strftime('%H:%M:%S')}] Process-{process_id} END - GWA: {gwa:.2f} (Time: {duration:.2f}s)")
     
-    print(f"[{process_name}] Student {student_id} GWA calculated: {gwa:.2f}")
+    result_queue.put((process_id, gwa, duration))
 
 def main():
-    all_grades = []
-    
+    grades_list = []
     num_students = int(input("Enter number of students: "))
     
-    for s in range(num_students):
-        print(f"\nStudent {s + 1}")
-        num_subjects = int(input("  Number of subjects: "))
-        
+    for i in range(num_students):
+        print(f"\nStudent {i+1}:")
+        num_grades = int(input("  How many grades? "))
         grades = []
-        for i in range(num_subjects):
-            grade = float(input(f"    Subject {i + 1} grade: "))
+        for j in range(num_grades):
+            grade = float(input(f"    Grade {j+1}: "))
             grades.append(grade)
-        
-        all_grades.append(grades)
+        grades_list.append(grades)
     
-    print("\n" + "="*60)
-    print("Starting GWA calculations in parallel...")
-    print("="*60 + "\n")
+    print("\nStarting processes...\n")
     
     processes = []
     result_queue = Queue()
+    overall_start = time.time()
     
-    for i, grades in enumerate(all_grades):
-        p = Process(
-            target=compute_gwa_mp,
-            args=(i + 1, grades, result_queue),
-            name=f"Process-Student-{i + 1}"
-        )
+    for i, grades in enumerate(grades_list):
+        p = Process(target=compute_gwa_mp, args=(grades, i+1, result_queue))
         processes.append(p)
         p.start()
     
     for p in processes:
         p.join()
     
-    print("\n" + "="*60)
-    print("FINAL RESULTS")
-    print("="*60)
+    overall_end = time.time()
     
     results = []
     while not result_queue.empty():
         results.append(result_queue.get())
     
-    results.sort(key=lambda x: x['student_id'])
+    print("\n" + "="*50)
+    print("RESULTS")
+    print("="*50)
     
-    for result in results:
-        print(f"\nStudent {result['student_id']}:")
-        print(f"  GWA: {result['gwa']:.2f}")
-        print(f"  Subjects: {result['num_subjects']}")
-        print(f"  Processed by: {result['process_name']}")
+    results.sort(key=lambda x: x[0])
+    for process_id, gwa, duration in results:
+        print(f"Student {process_id}: GWA = {gwa:.2f} (Time: {duration:.2f}s)")
     
     if results:
-        class_avg = sum(r['gwa'] for r in results) / len(results)
-        print(f"\n{'='*60}")
-        print(f"Class Average GWA: {class_avg:.2f}")
-        print(f"{'='*60}")
+        fastest = min(results, key=lambda x: x[2])
+        print(f"\nFastest process: Process-{fastest[0]} ({fastest[2]:.2f}s)")
     
-    print("\nAll processes have finished execution.")
+    print(f"Total execution time: {overall_end - overall_start:.2f}s")
+    print("\nAll processes completed.")
 
 if __name__ == "__main__":
     main()

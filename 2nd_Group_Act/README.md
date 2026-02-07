@@ -12,7 +12,7 @@ file in your repository:
     -The multiprocessing version demonstrates true parallelism in Python because each process runs independently on separate CPU cores without being limited by the GIL(a lock that limits Python threads to one at a time), while multithreading only simulates parallelism through concurrency.
 
 ### 2. Compare execution times between multithreading and multiprocessing.
-    -
+    -The execution times highlight the difference between multithreading and multiprocessing. In multiprocessing, only one process was used, completing in 2.31 seconds, so no parallel speedup occurred. In multithreading, four threads ran concurrently, finishing at different times (1.35–2.81 seconds), showing overlap but not true parallelism due to the GIL. Overall, multithreading provides concurrency, while multiprocessing enables true parallelism, though the benefit is seen only with multiple processes or heavier workloads.
 
 ### 3. Can Python handle true parallelism using threads? Why or why not?
     -No, Python cannot handle true parallelism using threads. This is because of the Global Interpreter Lock (GIL), which allows only one thread to execute Python bytecode at a time. Even if multiple threads exist, they take turns running instead of executing simultaneously on multiple CPU cores. As a result, Python threads provide concurrency but not true parallelism for CPU-bound tasks. True parallelism in Python is achieved using multiprocessing, where each process has its own GIL and can run on separate CPU cores.
