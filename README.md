@@ -5,9 +5,6 @@
 
 ---
 
-# NUVOS TEAM
-
-### Innovation • Collaboration • Excellence
 
 </div>
 
@@ -54,9 +51,5 @@
 </table>
 
 <div align="center">
-  
----
-
-**NUVOS Team**
 
 </div>
