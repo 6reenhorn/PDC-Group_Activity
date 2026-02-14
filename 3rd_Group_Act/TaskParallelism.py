@@ -10,10 +10,7 @@ employees = [
     ("Edward", 35000)
 ]
 
-# ============================================================================
 # DEDUCTION FUNCTIONS (Independent Tasks)
-# ============================================================================
-
 def compute_sss(salary):
     """
     Compute SSS deduction (4.5%)
@@ -42,4 +39,34 @@ def compute_philhealth(salary):
     deduction = salary * 0.025
     thread_name = threading.current_thread().name
     print(f"  [{thread_name}] Computing PhilHealth: ₱{deduction:,.2f}")
+    return deduction
+
+def compute_pagibig(salary):
+    """
+    Compute Pag-IBIG deduction (2%)
+   
+    Args:
+        salary: Employee's gross salary
+   
+    Returns:
+        Pag-IBIG deduction amount
+    """
+    deduction = salary * 0.02
+    thread_name = threading.current_thread().name
+    print(f"  [{thread_name}] Computing Pag-IBIG: ₱{deduction:,.2f}")
+    return deduction
+
+def compute_tax(salary):
+    """
+    Compute Withholding Tax (10%)
+   
+    Args:
+        salary: Employee's gross salary
+   
+    Returns:
+        Withholding tax amount
+    """
+    deduction = salary * 0.10
+    thread_name = threading.current_thread().name
+    print(f"  [{thread_name}] Computing Withholding Tax: ₱{deduction:,.2f}")
     return deduction
