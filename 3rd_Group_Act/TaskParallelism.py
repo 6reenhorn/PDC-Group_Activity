@@ -127,3 +127,38 @@ def process_employee_task_parallelism(employee_name, salary):
         'total_deduction': total_deduction,
         'net_salary': net_salary
     }
+
+# MAIN EXECUTION
+def main():
+    """Main execution function for Task Parallelism demonstration"""
+   
+    print("\n" + "="*70)
+    print("PART A - TASK PARALLELISM DEMONSTRATION")
+    print("Using ThreadPoolExecutor")
+    print("="*70)
+   
+    # Process ALL employees using Task Parallelism
+    all_results = []
+   
+    for employee_name, salary in employees:
+        result = process_employee_task_parallelism(employee_name, salary)
+        all_results.append(result)
+   
+    # Display summary for all employees
+    print("\n" + "="*70)
+    print("SUMMARY - ALL EMPLOYEES")
+    print("="*70)
+   
+    total_gross = sum(r['gross_salary'] for r in all_results)
+    total_deductions = sum(r['total_deduction'] for r in all_results)
+    total_net = sum(r['net_salary'] for r in all_results)
+   
+    print(f"Total Employees Processed: {len(all_results)}")
+    print(f"Total Gross Salary:        ₱{total_gross:>12,.2f}")
+    print(f"Total Deductions:          ₱{total_deductions:>12,.2f}")
+    print(f"Total Net Salary:          ₱{total_net:>12,.2f}")
+   
+    print("="*70)
+
+if __name__ == "__main__":
+    main()
