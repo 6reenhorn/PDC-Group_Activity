@@ -70,3 +70,60 @@ def compute_tax(salary):
     thread_name = threading.current_thread().name
     print(f"  [{thread_name}] Computing Withholding Tax: ₱{deduction:,.2f}")
     return deduction
+
+# TASK PARALLELISM IMPLEMENTATION
+def process_employee_task_parallelism(employee_name, salary):
+    """
+    Process a single employee's deductions using Task Parallelism.
+   
+    Different deduction tasks (SSS, PhilHealth, Pag-IBIG, Tax) are executed
+    concurrently using ThreadPoolExecutor. All tasks operate on the same
+    salary value.
+   
+    Args:
+        employee_name: Name of the employee
+        salary: Gross salary of the employee
+    """
+    print(f"\n{'='*70}")
+    print(f"TASK PARALLELISM - PROCESSING EMPLOYEE: {employee_name.upper()}")
+    print(f"{'='*70}")
+    print(f"Gross Salary: ₱{salary:,.2f}")
+    print(f"\nExecuting deduction tasks concurrently...\n")
+   
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        # Submit each deduction task and get Future objects
+        future_sss = executor.submit(compute_sss, salary)
+        future_philhealth = executor.submit(compute_philhealth, salary)
+        future_pagibig = executor.submit(compute_pagibig, salary)
+        future_tax = executor.submit(compute_tax, salary)
+       
+        sss = future_sss.result()
+        philhealth = future_philhealth.result()
+        pagibig = future_pagibig.result()
+        tax = future_tax.result()
+   
+    total_deduction = sss + philhealth + pagibig + tax
+    net_salary = salary - total_deduction
+   
+    print(f"\n{'-'*70}")
+    print(f"DEDUCTION BREAKDOWN")
+    print(f"{'-'*70}")
+    print(f"SSS (4.5%):              ₱{sss:>12,.2f}")
+    print(f"PhilHealth (2.5%):       ₱{philhealth:>12,.2f}")
+    print(f"Pag-IBIG (2%):           ₱{pagibig:>12,.2f}")
+    print(f"Withholding Tax (10%):   ₱{tax:>12,.2f}")
+    print(f"{'-'*70}")
+    print(f"Total Deduction:         ₱{total_deduction:>12,.2f}")
+    print(f"Net Salary:              ₱{net_salary:>12,.2f}")
+    print(f"{'='*70}\n")
+   
+    return {
+        'name': employee_name,
+        'gross_salary': salary,
+        'sss': sss,
+        'philhealth': philhealth,
+        'pagibig': pagibig,
+        'tax': tax,
+        'total_deduction': total_deduction,
+        'net_salary': net_salary
+    }
