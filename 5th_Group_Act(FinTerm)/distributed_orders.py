@@ -54,3 +54,43 @@ def parse_args():
     parser.add_argument("--recv-timeout", type=float, default=20.0, help="Master receive timeout per run in seconds")
     return parser.parse_args()
 
+# ============================================================
+#  PART 2 — FLORES
+#  Order Processing Functions
+#  Covers: process_order(), process_order_mp()
+# ============================================================
+
+def process_order(order, worker_rank, min_delay, max_delay):
+    delay = random.uniform(min_delay, max_delay)
+    time.sleep(delay)
+    result = {
+        **order,
+        "status": "COMPLETED",
+        "worker_rank": worker_rank,
+        "processed_by": f"Worker-{worker_rank}",
+        "processing_time_s": round(delay, 2),
+    }
+    print(
+        f"  [Worker-{worker_rank}] Processed {order['order_id']} "
+        f"({order['item']}) in {delay:.2f}s",
+        flush=True,
+    )
+    return result
+
+
+def process_order_mp(order, worker_rank, result_queue, lock, completed_counter, min_delay, max_delay):
+    """Child process task: process one order and update shared state safely."""
+    try:
+        result = process_order(order, worker_rank, min_delay, max_delay)
+    except Exception as exc:
+        result = {
+            **order,
+            "status": "FAILED",
+            "worker_rank": worker_rank,
+            "processed_by": f"Worker-{worker_rank}",
+            "processing_time_s": 0.0,
+            "error": str(exc),
+        }
+    result_queue.put(result)
+    with lock:
+        completed_counter.value += 1
