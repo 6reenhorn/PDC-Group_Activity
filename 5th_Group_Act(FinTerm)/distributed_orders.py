@@ -94,3 +94,67 @@ def process_order_mp(order, worker_rank, result_queue, lock, completed_counter, 
     result_queue.put(result)
     with lock:
         completed_counter.value += 1
+
+# ============================================================
+#  PART 3 — CASIA
+#  Worker Summary and MPI Initialization
+#  Covers: print_worker_summary(), main() setup up to order generation
+# ============================================================
+
+def print_worker_summary(all_results, buckets):
+    print("\n" + "="*55)
+    print("  WORKER SUMMARY")
+    print("="*55)
+
+    num_workers = len(buckets)
+    for worker_rank in range(1, num_workers + 1):
+        assigned = len(buckets[worker_rank - 1])
+        entries = [r for r in all_results if r.get("worker_rank") == worker_rank]
+        completed = [r for r in entries if r.get("status") == "COMPLETED"]
+        failed = [r for r in entries if r.get("status") != "COMPLETED"]
+        avg_time = (
+            round(sum(r.get("processing_time_s", 0.0) for r in completed) / len(completed), 2)
+            if completed else 0.0
+        )
+        print(
+            f"  Worker-{worker_rank}: assigned={assigned}, completed={len(completed)}, "
+            f"failed={len(failed)}, avg_time={avg_time:.2f}s"
+        )
+    print("="*55)
+
+
+def main():
+    from mpi4py import MPI
+
+    args = parse_args()
+
+    # Initialize MPI only in the main interpreter process.
+    # This avoids MPI init side effects when multiprocessing spawns child processes on Windows.
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+
+    if args.seed is not None:
+        random.seed(args.seed + rank)
+
+    # ── MASTER ──────────────────────────────────────
+    if rank == 0:
+        if args.orders is not None and args.orders > 0:
+            num_orders = args.orders
+        else:
+            num_orders = random.randint(5, 8)
+
+        if size < 2:
+            print("Need at least 2 MPI processes: 1 master + >=1 worker.")
+            return
+
+        run_start = time.perf_counter()
+        orders = generate_orders(num_orders)
+        num_workers = size - 1
+
+        print("\n" + "="*55)
+        print(f"  MASTER  |  {num_orders} orders  |  {num_workers} worker(s)")
+        print("="*55)
+        for o in orders:
+            print(f"  Generated: {o['order_id']} -> {o['item']}")
+        print("-"*55 + "\n")
