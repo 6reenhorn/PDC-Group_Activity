@@ -18,6 +18,7 @@ type. Workers block on `comm.recv` until their payload arrives, then immediately
 begin processing. This design keeps the master in full control of load distribution
 while workers remain stateless and interchangeable.
 
+---
 
 ### 2. What happens if there are more orders than workers?
 Round-robin handles overflow automatically — extra orders simply wrap around and
@@ -37,10 +38,56 @@ orders within the same worker are processed **in parallel**, which significantly
 reduces the impact of uneven bucket sizes. The worker with 3 orders does not
 necessarily finish last — its three child processes all run concurrently.
 
+---
+
 ### 3. How did processing delays affect the order completion?
+Each order's processing time is drawn from `random.uniform(min_delay, max_delay)`
+— by default between **0.3 and 1.5 seconds**. Because workers process their orders
+in parallel child processes, and each child sleeps for a different random duration,
+the **completion order is entirely non-deterministic** and almost never matches
+the original submission order.
+
+This is visible in the output: an order sent last may complete first, and the slowest
+order becomes the bottleneck for its worker. The master uses a non-blocking
+`comm.Iprobe()` polling loop to collect results as workers finish, rather than
+waiting on them one by one in a fixed order. This means fast workers are
+acknowledged immediately without the master stalling on a slow one. A configurable
+`--recv-timeout` flag also protects the master from hanging indefinitely if a worker
+crashes or never responds.
+
+---
 
 ### 4. How did you implement shared memory, and where was it initialized?
+Shared memory is implemented at the **worker level** using three components from
+Python's `multiprocessing` module, all initialized inside the worker's MPI block
+(rank > 0) before spawning child processes:
+
+```python
+result_queue = mp.Queue()          # collects completed order results
+lock = mp.Lock()                   # mutual exclusion for counter writes
+completed_counter = mp.Value('i', 0)  # shared integer across child processes
+```
+
+- `mp.Queue()` is a process-safe FIFO queue. Each child process calls
+  `result_queue.put(result)` after finishing an order. The parent worker then
+  drains the queue after all children have joined.
+
+- `mp.Value('i', 0)` is a shared memory integer backed by a C-type. Every child
+  process increments this counter after completing its order, giving a real-time
+  count of how many orders have been processed so far.
+
+- `mp.Lock()` guards the counter increment to prevent race conditions.
+
+These are initialized **per MPI worker**, not globally, because each MPI process is
+an independent OS process with its own memory space. Shared memory only needs
+to exist within the scope of a single worker's child processes.
+
+---
 
 ### 5. What issues occurred when multiple workers wrote to shared memory simultaneously?
 
+---
+
 ### 6. How did you ensure consistent results when using multiple processes?
+
+---
