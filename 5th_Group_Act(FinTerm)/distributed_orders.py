@@ -20,6 +20,7 @@ Stress timing variation
     & "C:\Program Files\Microsoft MPI\Bin\mpiexec.exe" -n 4 python distributed_orders.py --orders 30 --seed 42 --min-delay 0.1 --max-delay 2.0 --recv-timeout 40
 """
 
+
 # ============================================================
 #  PART 1 — ANTONIO
 #  Imports, Constants, and Order Generation
@@ -53,6 +54,7 @@ def parse_args():
     parser.add_argument("--max-delay", type=float, default=1.5, help="Maximum simulated processing delay in seconds")
     parser.add_argument("--recv-timeout", type=float, default=20.0, help="Master receive timeout per run in seconds")
     return parser.parse_args()
+
 
 # ============================================================
 #  PART 2 — FLORES
@@ -94,6 +96,7 @@ def process_order_mp(order, worker_rank, result_queue, lock, completed_counter, 
     result_queue.put(result)
     with lock:
         completed_counter.value += 1
+
 
 # ============================================================
 #  PART 3 — CASIA
@@ -158,3 +161,67 @@ def main():
         for o in orders:
             print(f"  Generated: {o['order_id']} -> {o['item']}")
         print("-"*55 + "\n")
+
+
+# ============================================================
+#  PART 4 — ESPINA
+#  Master: Order Distribution and Result Collection
+#  Covers: round-robin bucketing, comm.send() dispatch,
+#          Iprobe() result collection loop, timeout handling
+# ============================================================
+
+        # Distribute orders round-robin
+        buckets = [[] for _ in range(num_workers)]
+        for i, order in enumerate(orders):
+            buckets[i % num_workers].append(order)
+
+        dispatch_start = time.perf_counter()
+        for worker_id in range(num_workers):
+            dest = worker_id + 1
+            payload = buckets[worker_id]
+            comm.send(payload, dest=dest, tag=10)
+            print(
+                f"  [Master] Sent {len(payload)} order(s) -> Worker-{dest}: "
+                + ", ".join(o["order_id"] for o in payload),
+                flush=True,
+            )
+            dispatch_time = time.perf_counter() - dispatch_start
+
+        print("\n" + "-"*55)
+        print("  [Master] Waiting for all workers to finish ...")
+        print("-"*55 + "\n")
+
+        # Collect results back from each worker via MPI with timeout protection
+        all_results = []
+        pending_workers = set(range(1, num_workers + 1))
+        recv_start = time.perf_counter()
+
+        while pending_workers:
+            received_any = False
+            for worker_rank in list(pending_workers):
+                if comm.Iprobe(source=worker_rank, tag=20):
+                    worker_results = comm.recv(source=worker_rank, tag=20)
+                    all_results.extend(worker_results)
+                    pending_workers.remove(worker_rank)
+                    received_any = True
+
+            if pending_workers and (time.perf_counter() - recv_start) > args.recv_timeout:
+                print(
+                    f"  [Master] Timeout reached ({args.recv_timeout:.1f}s). "
+                    f"Missing workers: {sorted(pending_workers)}",
+                    flush=True,
+                )
+                for worker_rank in sorted(pending_workers):
+                    for order in buckets[worker_rank - 1]:
+                        all_results.append({
+                            **order,
+                            "status": "TIMEOUT",
+                            "worker_rank": worker_rank,
+                            "processed_by": f"Worker-{worker_rank}",
+                            "processing_time_s": 0.0,
+                            "error": "Worker result not received before timeout",
+                        })
+                break
+
+            if not received_any:
+                time.sleep(0.05)
