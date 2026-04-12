@@ -131,4 +131,45 @@ publishing.
 
 ### 6. How did you ensure consistent results when using multiple processes?
 
+The system uses a **layered approach** to guarantee correctness at every level:
+
+**Within each worker — `mp.Lock()` for atomic counter updates:**
+```python
+with lock:
+    completed_counter.value += 1
+```
+The `with lock:` block ensures only one child process at a time can enter the
+critical section. All others block at the lock boundary until it is released. This
+makes the increment effectively atomic and eliminates lost updates.
+
+**Within each worker — `p.join()` before reading results:**
+```python
+for p in workers:
+    p.join()
+```
+The parent worker waits for every child process to fully exit before draining the
+result queue. This guarantees that all `result_queue.put()` calls have completed
+before any `result_queue.get()` is attempted — no partial reads.
+
+**Across MPI processes — non-blocking `Iprobe()` collection with timeout:**
+```python
+if comm.Iprobe(source=worker_rank, tag=20):
+    worker_results = comm.recv(source=worker_rank, tag=20)
+```
+The master polls each worker non-blocking rather than doing a blocking `recv` in
+fixed order. This prevents one slow worker from stalling the collection of results
+from all others. If a worker never responds within `--recv-timeout` seconds, the
+master records those orders as `TIMEOUT` and continues — the final list is always
+complete even under failure conditions.
+
+**Result integrity — missing order detection in workers:**
+If a child process crashes before putting its result in the queue, the worker detects
+the gap by comparing received result IDs against the original order list, and inserts
+a `FAILED` record so the master always receives exactly as many records as orders
+were assigned. Nothing is silently dropped.
+
+Together, these four mechanisms — mutual exclusion, join barriers, non-blocking
+collection, and gap detection — ensure the final output is always **complete,
+consistent, and accurate** regardless of timing, process speed, or partial failures.
+
 ---
