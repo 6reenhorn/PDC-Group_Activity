@@ -1,9 +1,12 @@
+## Reflection and Analysis
+
 ## Antonio's Reflection:
 I first thought parallel algorithms would always be faster, but the results showed this is not true. Sequential code is simple and runs step by step, while parallel code splits the data, runs multiple processes, and combines the results, which adds extra work.
 The tests showed that for 1,000 elements, parallel was about 80× slower, while for 1,000,000 elements, both were almost the same. The delay comes from starting processes and moving data between them.
 In the search task, I first got the wrong result because I took the fastest output. I fixed it by checking all results and choosing the smallest index.
 
 Parallel is not always faster because it adds extra setup time. It works better only for large tasks, while simple sequential code is often enough for small and medium data.
+
 ---
 ## Casia's Reflection:
 I already learned something about sorting algorithms in theory but never truly appreciated the difference between sequential and parallel execution. Making the sequential version taught me  how the algorithm splits, sorts, and merges data recursively made the logic click. This activity did not just teach me sorting algorithms. It taught me how to think about efficiency, and that alone made it worth it. Testing special cases like already sorted and reverse sorted data also corrected a misconception I had. I thought that reverse sorted means that the output must be reversed but its actually the same output but the random integers that are generated are actually reversed also it is the worst case scenario based on that statement that i've read. This activity was actually meaningful and i learned something.
