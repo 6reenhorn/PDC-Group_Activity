@@ -21,3 +21,7 @@ In the search task, we first got the wrong result because we took the fastest ou
 ---
 ## Casia's Reflection:
 I already learned something about sorting algorithms in theory but never truly appreciated the difference between sequential and parallel execution. Making the sequential version taught me  how the algorithm splits, sorts, and merges data recursively made the logic click. This activity did not just teach me sorting algorithms. It taught me how to think about efficiency, and that alone made it worth it. Testing special cases like already sorted and reverse sorted data also corrected a misconception I had. I thought that reverse sorted means that the output must be reversed but its actually the same output but the random integers that are generated are actually reversed also it is the worst case scenario based on that statement that i've read. This activity was actually meaningful and i learned something.
+
+---
+## Anino's Refclection
+During the activity on sequential vs parallel algorithms, I realized that adding more processes does not always make a program faster. Even with a large dataset, the sequential linear search performed better because the overhead of creating multiple processes in Python took more time than the search itself. I also found the parallel version more complex to implement, especially when handling index offsets and cases where the target was not found. This experience taught me that choosing the right approach depends on understanding the problem and its constraints, not just assuming that parallelism is always better.
