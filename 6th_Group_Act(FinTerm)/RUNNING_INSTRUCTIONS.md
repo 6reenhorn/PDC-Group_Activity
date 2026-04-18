@@ -65,6 +65,7 @@ python parallel_sort.py --size 500000 --processes 8
 - Partitions data into chunks, each sorted by a worker process
 - Automatically merges sorted chunks back together
 - Shows partition and process information
+- Supports direct sequential-vs-parallel comparison with `--compare`
 
 ---
 
@@ -125,20 +126,29 @@ python parallel_search.py --size 500000 --processes 6 --skip-correctness
 
 ## Running Comparisons
 
-### Compare Sequential vs Parallel for Same Dataset Size
+### Compare Sequential vs Parallel Sorting Directly
 
 ```bash
-# Small dataset
-python sequential_sort.py --size 1000
-python parallel_sort.py --size 1000
+# Small dataset comparison
+python parallel_sort.py --compare --size 1000
 
-# Medium dataset
+# Medium dataset comparison
+python parallel_sort.py --compare --size 100000
+
+# Large dataset comparison
+python parallel_sort.py --compare --size 1000000 --processes 8
+
+# Run all standard dataset sizes in one go
+python parallel_sort.py --compare --all-sizes --processes 8
+```
+
+The `--compare` mode runs sequential merge sort and parallel merge sort on the same generated dataset, then prints a direct side-by-side summary with timings and speedup.
+
+If you want standalone runs instead of a direct comparison, you can still use:
+
+```bash
 python sequential_sort.py --size 100000
-python parallel_sort.py --size 100000
-
-# Large dataset
-python sequential_sort.py --size 1000000 --processes 8
-python parallel_sort.py --size 1000000 --processes 8
+python parallel_sort.py --size 100000 --processes 8
 ```
 
 ### Search Comparison
