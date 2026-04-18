@@ -19,4 +19,5 @@ In the search task, we first got the wrong result because we took the fastest ou
 - Simple sequential code is often enough for small and medium data  
 
 ---
-
+## Casia's Reflection:
+I already learned something about sorting algorithms in theory but never truly appreciated the difference between sequential and parallel execution. Making the sequential version taught me  how the algorithm splits, sorts, and merges data recursively made the logic click. This activity did not just teach me sorting algorithms. It taught me how to think about efficiency, and that alone made it worth it. Testing special cases like already sorted and reverse sorted data also corrected a misconception I had. I thought that reverse sorted means that the output must be reversed but its actually the same output but the random integers that are generated are actually reversed also it is the worst case scenario based on that statement that i've read. This activity was actually meaningful and i learned something.
