@@ -225,3 +225,101 @@ def main():
 
             if not received_any:
                 time.sleep(0.05)
+
+# ============================================================
+#  PART 5 — ANINO
+#  Master: Final Results Display + Worker Process Logic
+#  Covers: final results printing, runtime summary,
+#          print_worker_summary() call, and full worker (else) block
+# ============================================================
+
+        total_runtime = time.perf_counter() - run_start
+
+        # Display final results
+        print("\n" + "="*55)
+        print("  FINAL RESULTS  (collected from all workers)")
+        print("="*55)
+        for entry in sorted(all_results, key=lambda x: x["order_id"]):
+            if entry.get("status") == "COMPLETED":
+                print(
+                    f"  {entry['order_id']}  {entry['item']:<22}"
+                    f"  {entry['status']:<9} by {entry['processed_by']}"
+                    f"  ({entry['processing_time_s']}s)"
+                )
+            else:
+                print(
+                    f"  {entry['order_id']}  {entry['item']:<22}"
+                    f"  {entry.get('status', 'FAILED'):<9} by {entry['processed_by']}"
+                    f"  (reason: {entry.get('error', 'unknown')})"
+                )
+        print("-"*55)
+        completed_total = sum(1 for r in all_results if r.get("status") == "COMPLETED")
+        failed_total = len(all_results) - completed_total
+        print(f"  Total completed: {completed_total} / {num_orders}")
+        print(f"  Total failed/timeout: {failed_total}")
+        print(f"  Dispatch time: {dispatch_time:.2f}s")
+        print(f"  Collection window: {time.perf_counter() - recv_start:.2f}s")
+        print(f"  Total runtime: {total_runtime:.2f}s")
+        print("="*55 + "\n")
+
+        print_worker_summary(all_results, buckets)
+
+    # ── WORKERS ─────────────────────────────────────
+    else:
+        # Receive assigned orders from master
+        my_orders = comm.recv(source=0, tag=10)
+        print(
+            f"  [Worker-{rank}] Received {len(my_orders)} order(s): "
+            + ", ".join(o["order_id"] for o in my_orders),
+            flush=True,
+        )
+
+        # Process assigned orders using multiprocessing + synchronized shared state
+        result_queue = mp.Queue()
+        lock = mp.Lock()
+        completed_counter = mp.Value('i', 0)
+
+        workers = []
+        for order in my_orders:
+            p = mp.Process(
+                target=process_order_mp,
+                args=(order, rank, result_queue, lock, completed_counter, args.min_delay, args.max_delay),
+            )
+            p.start()
+            workers.append(p)
+
+        for p in workers:
+            p.join()
+
+        completed = []
+        while True:
+            try:
+                completed.append(result_queue.get_nowait())
+            except queue.Empty:
+                break
+
+        if len(completed) < len(my_orders):
+            done_order_ids = {entry["order_id"] for entry in completed}
+            for missing_order in my_orders:
+                if missing_order["order_id"] not in done_order_ids:
+                    completed.append({
+                        **missing_order,
+                        "status": "FAILED",
+                        "worker_rank": rank,
+                        "processed_by": f"Worker-{rank}",
+                        "processing_time_s": 0.0,
+                        "error": "Child process exited before publishing result",
+                    })
+
+        print(
+            f"  [Worker-{rank}] Multiprocessing completed: "
+            f"{completed_counter.value} order(s) recorded via shared counter",
+            flush=True,
+        )
+
+        # Send all completed results back to master
+        comm.send(completed, dest=0, tag=20)
+
+
+if __name__ == '__main__':
+    main()
