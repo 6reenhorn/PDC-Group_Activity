@@ -29,3 +29,11 @@ During the activity on sequential vs parallel algorithms, I realized that adding
 ---
 ## Flores's Reflection
 Working through both the linear search and merge sort implementations, the most important observation was that sequential code executes in a single, predictable flow, while parallel code must spend time organizing workers, dividing data, and collecting results before any speedup is realized. Because of this, parallel versions were slower for small datasets and only became useful for larger ones. The extra costs of creating processes, transferring data, and merging results limit the benefits, so parallelism is best suited for large, heavy tasks, while sequential code is better for smaller or simpler ones. One challenge encountered during implementation was managing the process pool and using proper guards, as incorrect handling could lead to errors or unexpected behavior.
+
+---
+## Espina's Reflection
+This activity helped me understand that performance is not only about the algorithm itself, but also about execution overhead. At first, I expected the parallel versions to always win because they use multiple processes. After running the benchmarks on small, medium, and large datasets, I realized that parallelism only becomes useful when the workload is big enough to justify process creation and communication costs.
+
+In the sorting task, I saw that both sequential and parallel merge sort produce correct outputs, but their runtime behavior depends heavily on dataset size. In the searching task, I also learned that correctness is just as important as speed, especially when handling chunk boundaries and returning the proper global index.
+
+Overall, this project made me more careful in evaluating efficiency. Instead of assuming that "parallel = faster," I now understand that the better approach depends on the problem size, system resources, and the overhead involved.
