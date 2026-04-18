@@ -1,16 +1,25 @@
 import random
 import time
 import os
+import argparse
 from multiprocessing import Process, Queue
+
+# Configuration
+DEFAULT_SIZE = 1000
+MAX_VALUE = 1_000_000
+DEFAULT_PROCESSES = 4
 
 
 def generate_dataset(n, mode="random"):
+    """Generate dataset with specified mode and size."""
+    base = [random.randint(1, MAX_VALUE) for _ in range(n)]
     if mode == "random":
-        return [random.randint(1, 1_000_000) for _ in range(n)]
+        return base
     elif mode == "sorted":
-        return sorted([random.randint(1, 1_000_000) for _ in range(n)])
+        return sorted(base)
     elif mode == "reverse":
-        return sorted([random.randint(1, 1_000_000) for _ in range(n)], reverse=True)
+        return sorted(base, reverse=True)
+    return base
 
 
 def sequential_search(data, target):
@@ -28,8 +37,8 @@ def worker(sub_data, target, q, offset):
     q.put(-1)
 
 
-def parallel_search(data, target):
-    num_processes = 4
+def parallel_search(data, target, num_processes=DEFAULT_PROCESSES):
+    """Search using multiple processes."""
     chunk_size = len(data) // num_processes
     q = Queue()
     processes = []
@@ -87,22 +96,25 @@ def run_correctness_tests():
     return all_pass
 
 
-def run_benchmark():
+def run_benchmark(test_sizes=None, num_processes=DEFAULT_PROCESSES):
+    """Run benchmark for specified sizes."""
+    if test_sizes is None:
+        test_sizes = [("Small", 1_000), ("Medium", 100_000), ("Large", 1_000_000)]
+    
     print("=" * 62)
     print("  WORKLOAD BENCHMARK")
-    print(f"  System CPU count: {os.cpu_count()}  |  Parallel processes: 4")
+    print(f"  System CPU count: {os.cpu_count()}  |  Parallel processes: {num_processes}")
     print("=" * 62)
 
-    sizes = [("Small", 1_000), ("Medium", 100_000), ("Large", 1_000_000)]
     summary = []
 
-    for label, n in sizes:
+    for label, n in test_sizes:
         print(f"\n  [{label} Dataset -- {n:,} elements]  mode=random")
         print(f"  {'-' * 56}")
         data = generate_dataset(n, mode="random")
         target = data[n // 2]
         _, seq_time = run_one("Sequential", sequential_search, data, target)
-        _, par_time = run_one("Parallel (4 proc)", parallel_search, data, target)
+        _, par_time = run_one(f"Parallel ({num_processes} proc)", lambda d, t: parallel_search(d, t, num_processes), data, target)
         speedup = seq_time / par_time if par_time > 0 else float("inf")
         note = "Parallel faster" if speedup > 1.05 else "Parallel slower (overhead)"
         print(f"    Speedup: {speedup:.2f}x  -> {note}")
@@ -144,17 +156,51 @@ def run_benchmark():
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Parallel Linear Search Benchmark")
+    parser.add_argument(
+        "--size",
+        type=int,
+        default=None,
+        help="Single dataset size to test (runs correctness tests + benchmark for that size)"
+    )
+    parser.add_argument(
+        "--all-sizes",
+        action="store_true",
+        help="Run benchmarks for all standard sizes (1K, 100K, 1M)"
+    )
+    parser.add_argument(
+        "--processes",
+        type=int,
+        default=DEFAULT_PROCESSES,
+        help=f"Number of processes (default: {DEFAULT_PROCESSES})"
+    )
+    parser.add_argument(
+        "--skip-correctness",
+        action="store_true",
+        help="Skip correctness tests and run only benchmarks"
+    )
+    args = parser.parse_args()
+    
     print()
     print("  LINEAR SEARCH  --  Sequential vs Parallel")
     print()
 
-    passed = run_correctness_tests()
-    if not passed:
-        print("  Some correctness tests FAILED.\n")
-        return
-
-    print("  All correctness tests PASSED.\n")
-    run_benchmark()
+    if not args.skip_correctness:
+        passed = run_correctness_tests()
+        if not passed:
+            print("  Some correctness tests FAILED.\n")
+            return
+        print("  All correctness tests PASSED.\n")
+    
+    # Determine which sizes to benchmark
+    if args.size is not None:
+        test_sizes = [(f"Custom", args.size)]
+    elif args.all_sizes:
+        test_sizes = [("Small", 1_000), ("Medium", 100_000), ("Large", 1_000_000)]
+    else:
+        test_sizes = [("Small", 1_000), ("Medium", 100_000), ("Large", 1_000_000)]
+    
+    run_benchmark(test_sizes, args.processes)
     print()
 
 
