@@ -122,29 +122,29 @@ def run_benchmark(test_sizes=None, num_processes=DEFAULT_PROCESSES):
 
     print(f"\n\n  [Special Case 1 -- Already Sorted Data]")
     print(f"  {'-' * 56}")
-    for label, n in sizes:
+    for label, n in test_sizes:
         print(f"\n    {label} ({n:,})")
         data = generate_dataset(n, mode="sorted")
         target = data[n // 2]
         run_one("  Sequential", sequential_search, data, target)
-        run_one("  Parallel", parallel_search, data, target)
+        run_one("  Parallel", lambda d, t: parallel_search(d, t, num_processes), data, target)
 
     print(f"\n\n  [Special Case 2 -- Reverse Sorted Data]")
     print(f"  {'-' * 56}")
-    for label, n in sizes:
+    for label, n in test_sizes:
         print(f"\n    {label} ({n:,})")
         data = generate_dataset(n, mode="reverse")
         target = data[n // 2]
         run_one("  Sequential", sequential_search, data, target)
-        run_one("  Parallel", parallel_search, data, target)
+        run_one("  Parallel", lambda d, t: parallel_search(d, t, num_processes), data, target)
 
     print(f"\n\n  [Special Case 3 -- Target Not Found (full scan)]")
     print(f"  {'-' * 56}")
-    for label, n in sizes:
+    for label, n in test_sizes:
         print(f"\n    {label} ({n:,})  target=0 (never in dataset)")
         data = generate_dataset(n, mode="random")
         run_one("  Sequential", sequential_search, data, 0)
-        run_one("  Parallel", parallel_search, data, 0)
+        run_one("  Parallel", lambda d, t: parallel_search(d, t, num_processes), data, 0)
 
     print(f"\n\n{'=' * 62}")
     print("  SUMMARY -- Random Dataset")

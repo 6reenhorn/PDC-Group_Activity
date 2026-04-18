@@ -8,6 +8,15 @@ DEFAULT_SIZE = 1000
 MAX_VALUE = 1_000_000
 DEFAULT_PROCESSES = 4
 
+
+def format_preview(arr, preview_count=10):
+    """Return a compact preview with first/last values."""
+    if len(arr) <= preview_count * 2:
+        return str(arr)
+    head = arr[:preview_count]
+    tail = arr[-preview_count:]
+    return f"first {preview_count}: {head} ... last {preview_count}: {tail}"
+
 def generate_datasets(size):
     """Generate random, sorted, and reverse-sorted datasets."""
     data = [random.randint(1, MAX_VALUE) for _ in range(size)]
@@ -66,7 +75,7 @@ def parallel_merge_sort(arr, num_processes=None):
     if num_processes is None:
         num_processes = DEFAULT_PROCESSES
 
-    chunk_size = len(arr) // num_processes             
+    chunk_size = max(1, len(arr) // num_processes)
     chunks = [arr[i:i + chunk_size] for i in range(0, len(arr), chunk_size)]
 
     print(f"  Partitioned into {len(chunks)} chunks "
@@ -89,15 +98,19 @@ def verify(original, sorted_result, label):
     return ok
 
 
-def run_dataset(label, dataset):
-    print(f"\n{'─'*50}")
+def run_dataset(label, dataset, num_processes, show_output):
+    print(f"\n{'-'*50}")
     print(f"Dataset : {label}  ({len(dataset)} elements)")
     start = time.perf_counter()
-    result = parallel_merge_sort(dataset)
+    result = parallel_merge_sort(dataset, num_processes=num_processes)
     elapsed = time.perf_counter() - start
-    verify(dataset, result, label)
+    ok = verify(dataset, result, label)
     print(f"  Time   : {elapsed*1000:.3f} ms")
-    print(f"  Output : {result}")
+    if show_output:
+        print(f"  Output : {result}")
+    else:
+        print(f"  Preview: {format_preview(result)}")
+    return (label, len(dataset), elapsed * 1000, ok, result[0], result[-1])
 
 # Main
 
@@ -131,8 +144,17 @@ if __name__ == "__main__":
     print(f"   Processes to use: {args.processes}")
     print("="*60)
 
-    run_dataset("Random Data",          data)
-    run_dataset("Already Sorted Data",  already_sorted)
-    run_dataset("Reverse Sorted Data",  reverse_sorted)
+    summary = []
+    summary.append(run_dataset("Random Data", data, args.processes, args.show_output))
+    summary.append(run_dataset("Already Sorted Data", already_sorted, args.processes, args.show_output))
+    summary.append(run_dataset("Reverse Sorted Data", reverse_sorted, args.processes, args.show_output))
+
+    print("\n" + "=" * 78)
+    print("  SUMMARY")
+    print(f"  {'Dataset':<22} {'N':>10} {'Time (ms)':>12} {'Status':>10} {'Min':>10} {'Max':>10}")
+    print(f"  {'-'*22} {'-'*10} {'-'*12} {'-'*10} {'-'*10} {'-'*10}")
+    for label, n, time_ms, ok, min_val, max_val in summary:
+        print(f"  {label:<22} {n:>10,} {time_ms:>12.3f} {('OK' if ok else 'FAIL'):>10} {min_val:>10} {max_val:>10}")
+    print("=" * 78)
 
     print("\nAll datasets sorted and verified successfully.")
