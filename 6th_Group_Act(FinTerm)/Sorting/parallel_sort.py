@@ -1,11 +1,19 @@
 import random
 import time
+import argparse
 from multiprocessing import Pool, cpu_count
 
-# Hello, if you want to change the amount of dataset, just change the range
-data = [random.randint(1, 1000000) for _ in range(1000)]
-already_sorted = sorted(data)
-reverse_sorted = sorted(data, reverse=True)
+# Configuration
+DEFAULT_SIZE = 1000
+MAX_VALUE = 1_000_000
+DEFAULT_PROCESSES = 4
+
+def generate_datasets(size):
+    """Generate random, sorted, and reverse-sorted datasets."""
+    data = [random.randint(1, MAX_VALUE) for _ in range(size)]
+    already_sorted = sorted(data)
+    reverse_sorted = sorted(data, reverse=True)
+    return data, already_sorted, reverse_sorted
 
 def merge_sort(arr):
     if len(arr) <= 1:
@@ -56,9 +64,9 @@ def parallel_merge_sort(arr, num_processes=None):
     3. Merge      – sorted chunks are combined into one globally sorted list
     """
     if num_processes is None:
-        num_processes = cpu_count()     
+        num_processes = DEFAULT_PROCESSES
 
-    chunk_size = len(arr) // 4             
+    chunk_size = len(arr) // num_processes             
     chunks = [arr[i:i + chunk_size] for i in range(0, len(arr), chunk_size)]
 
     print(f"  Partitioned into {len(chunks)} chunks "
@@ -94,13 +102,37 @@ def run_dataset(label, dataset):
 # Main
 
 if __name__ == "__main__":
-    print("=" * 50)
+    parser = argparse.ArgumentParser(description="Parallel Merge Sort Benchmark")
+    parser.add_argument(
+        "--size", 
+        type=int, 
+        default=DEFAULT_SIZE,
+        help=f"Dataset size (default: {DEFAULT_SIZE})"
+    )
+    parser.add_argument(
+        "--processes",
+        type=int,
+        default=DEFAULT_PROCESSES,
+        help=f"Number of processes (default: {DEFAULT_PROCESSES})"
+    )
+    parser.add_argument(
+        "--show-output",
+        action="store_true",
+        help="Print full sorted output"
+    )
+    args = parser.parse_args()
+    
+    data, already_sorted, reverse_sorted = generate_datasets(args.size)
+    
+    print("="*60)
     print("   PARALLEL MERGE SORT  (multiprocessing)")
-    print(f"   CPU cores available : {cpu_count()}")
-    print("=" * 50)
+    print(f"   Dataset size: {args.size:,}")
+    print(f"   CPU cores available: {cpu_count()}")
+    print(f"   Processes to use: {args.processes}")
+    print("="*60)
 
     run_dataset("Random Data",          data)
     run_dataset("Already Sorted Data",  already_sorted)
     run_dataset("Reverse Sorted Data",  reverse_sorted)
 
-    print("All datasets sorted and verified successfully.")
+    print("\nAll datasets sorted and verified successfully.")
