@@ -10,8 +10,8 @@ load_dotenv()
 # Get API URL from .env file
 API_URL = os.getenv("API_URL")
 
-# Change this per group member (e.g., "node_john", "node_maria", "node_carlo")
-EDGE_ID = "node_1"
+# Change this per group member (e.g., "node_john_cyril_espina")
+EDGE_ID = "node_john_cyril_espina"
 
 def generate_vote():
     """
