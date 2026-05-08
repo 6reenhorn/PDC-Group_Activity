@@ -13,17 +13,22 @@ API_URL = os.getenv("API_URL")
 # Change this per group member (e.g., "node_john_cyril_espina")
 EDGE_ID = "node_john_cyril_espina"
 
+# Step 2: Throughput counter -- tracks how many votes this node has sent
+votes_sent = 0
+
 def generate_vote():
     """
     Generates a unique vote with an edge node identifier.
-    Each node produces independent votes to simulate distributed sources.
+    Includes time_created for end-to-end latency measurement (Step 1).
     """
+    now = time.time()
     return {
-        "user_id": str(uuid.uuid4()),   # unique per vote
-        "poll_id": "poll_1",            # poll identifier
-        "choice": random.choice(["A", "B", "C"]),  # random vote choice
-        "timestamp": time.time(),       # when the vote was generated
-        "edge_id": EDGE_ID              # identifies which edge node sent this
+        "user_id": str(uuid.uuid4()),
+        "poll_id": "poll_1",
+        "choice": random.choice(["A", "B", "C"]),
+        "timestamp": now,
+        "time_created": now,    # Step 1: used for latency measurement at worker
+        "edge_id": EDGE_ID
     }
 
 def send_vote(vote, retries=3):
@@ -31,6 +36,8 @@ def send_vote(vote, retries=3):
     Sends vote to the API with retry logic to simulate
     unreliable network conditions.
     """
+    global votes_sent
+
     if not API_URL:
         print("[ERROR] API_URL is not set in .env file!")
         return
@@ -39,7 +46,8 @@ def send_vote(vote, retries=3):
         try:
             response = requests.post(API_URL, json=vote, timeout=5)
             if response.status_code == 200:
-                print(f"[SENT] Edge: {EDGE_ID} | User: {vote['user_id']} | Choice: {vote['choice']}")
+                votes_sent += 1  # Step 2: increment throughput counter
+                print(f"[SENT] Edge: {EDGE_ID} | User: {vote['user_id']} | Choice: {vote['choice']} | Total Sent: {votes_sent}")
                 return
             else:
                 print(f"[RETRY {attempt+1}] Unexpected response: {response.status_code}")
