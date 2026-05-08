@@ -1,4 +1,5 @@
 from supabase import create_client
+from datetime import datetime, timezone
 import os
 import time
 from dotenv import load_dotenv
@@ -46,6 +47,9 @@ def process_votes():
             if existing.data:
                 print(f"[DUPLICATE DETECTED] doc_id: {doc_id} already exists -- skipping duplicate write")
 
+            # Convert float timestamp to ISO format for Supabase compatibility
+            processed_at_iso = datetime.fromtimestamp(received_at, tz=timezone.utc).isoformat()
+
             # Upsert into final votes table (idempotent write)
             # If the same vote arrives twice, it just overwrites the same record
             supabase.table("votes").upsert({
@@ -55,7 +59,7 @@ def process_votes():
                 "choice": vote["choice"],
                 "timestamp": vote["timestamp"],
                 "edge_id": vote.get("edge_id"),
-                "processed_at": received_at
+                "processed_at": processed_at_iso
             }).execute()
 
             # Mark as processed (equivalent to message.ack())
@@ -83,7 +87,7 @@ def check_consistency():
     """
     Step 4: Evaluating consistency across components.
     Compares total counts across vote_queue and votes table.
-    Run this manually to verify system state.
+    Prints automatically every 10 cycles.
     """
     total_received = supabase.table("vote_queue").select("id", count="exact").execute()
     total_processed = supabase.table("vote_queue").select("id", count="exact").eq("processed", True).execute()
