@@ -11,7 +11,7 @@ load_dotenv()
 API_URL = os.getenv("API_URL")
 
 # Change this per group member (e.g., "node_john_cyril_espina")
-EDGE_ID = "node_john_cyril_espina"
+EDGE_ID = "node_sophia_marie_flores"
 
 # Step 2: Throughput counter -- tracks how many votes this node has sent
 votes_sent = 0
